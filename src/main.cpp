@@ -1,107 +1,47 @@
 #include <Arduino.h>
-
-// กำหนดพอร์ต
-const int sw1 = 15;
-const int rad1 = 23;
-const int green1 = 19;
-const int yellow1 = 18;
-const int sw2 = 2;
-const int rad2 = 5;
-const int green2 = 17;
-const int yellow2 = 16;
-
-// ตัวแปรสถานะ
-bool isBlinking = false;
-
-// โปรโตไทป์ของฟังก์ชัน (ประกาศไว้ก่อน)
-void blinkAllLights();
-void trafficLightSequence();
+// กำหนดขา GPIO สำหรับ LED แต่ละดวง
+int ledPins[] = {23, 19, 18, 5, 17, 16, 4, 0}; 
+const int ledCount = 8; // จำนวนหลอดไฟทั้งหมด
+int potPin = 36;        // ขา GPIO36 สำหรับ Potentiometer
+// ประกาศ prototype ของฟังก์ชัน
+void controlLEDs(int ledOnCount);
 
 void setup() {
-  // กำหนดพอร์ตทั้งหมดเป็น OUTPUT หรือ INPUT
-  pinMode(rad1, OUTPUT);
-  pinMode(green1, OUTPUT);
-  pinMode(yellow1, OUTPUT);
-  pinMode(rad2, OUTPUT);
-  pinMode(green2, OUTPUT);
-  pinMode(yellow2, OUTPUT);
-  pinMode(sw1, INPUT_PULLUP);
-  pinMode(sw2, INPUT_PULLUP);
+  Serial.begin(115200);
+  analogReadResolution(12); // กำหนดความละเอียด ADC เป็น 12 บิต (0-4095)
 
-  // ปิดไฟทั้งหมดในตอนเริ่มต้น
-  digitalWrite(rad1, LOW);
-  digitalWrite(green1, LOW);
-  digitalWrite(yellow1, LOW);
-  digitalWrite(rad2, LOW);
-  digitalWrite(green2, LOW);
-  digitalWrite(yellow2, LOW);
+  // กำหนดขา GPIO ทั้งหมดเป็น OUTPUT
+  for (int i = 0; i < ledCount; i++) {
+    pinMode(ledPins[i], OUTPUT);
+  }
 }
 
 void loop() {
-  // ตรวจจับการกดปุ่ม sw1
-  if (digitalRead(sw1) == HIGH) {
-    delay(200); // ป้องกันการกดซ้ำ
-    isBlinking = !isBlinking; // สลับโหมดระหว่างไฟจราจรปกติและกระพริบ
-  }
+  int potValue = analogRead(potPin); // อ่านค่าสัญญาณจาก Potentiometer (0 - 4095)
+  Serial.println(potValue); // แสดงค่าที่อ่านได้ผ่าน Serial Monitor
 
-  if (isBlinking) {
-    blinkAllLights(); // โหมดไฟกระพริบ
+  // ควบคุมการติด/ดับหลอดไฟตามช่วงที่กำหนด
+  if (potValue >= 0 && potValue <= 500) {
+    controlLEDs(1); // ติด 1 หลอด
+  } else if (potValue > 500 && potValue <= 1000) {
+    controlLEDs(3); // ติด 3 หลอด
+  } else if (potValue > 1000 && potValue <= 2000) {
+    controlLEDs(5); // ติด 5 หลอด
   } else {
-    trafficLightSequence(); // โหมดไฟจราจรปกติ
+    controlLEDs(8); // ติดทั้งหมด
+  }
+
+  delay(100); // หน่วงเวลาเล็กน้อยเพื่อความเสถียร
+}
+
+
+// ฟังก์ชันควบคุมจำนวนหลอดไฟที่ติด
+void controlLEDs(int ledOnCount) {
+  for (int i = 0; i < ledCount; i++) {
+    if (i < ledOnCount) {
+      digitalWrite(ledPins[i], HIGH); // เปิดหลอดไฟ
+    } else {
+      digitalWrite(ledPins[i], LOW);  // ปิดหลอดไฟ
+    }
   }
 }
-
-void trafficLightSequence() {
-  // ลำดับไฟจราจร
-  // ไฟแดงแยก 1 และไฟเขียวแยก 2
-  digitalWrite(rad1, HIGH);
-  digitalWrite(green2, HIGH);
-  delay(2000);
-
-  // ไฟเหลืองทั้งสองแยก
-  digitalWrite(rad1, LOW);
-  digitalWrite(green2, LOW);
-  digitalWrite(yellow1, HIGH);
-  digitalWrite(yellow2, HIGH);
-  delay(2000);
-
-  // ไฟเขียวแยก 1 และไฟแดงแยก 2
-  digitalWrite(yellow1, LOW);
-  digitalWrite(yellow2, LOW);
-  digitalWrite(green1, HIGH);
-  digitalWrite(rad2, HIGH);
-  delay(2000);
-
-  // ไฟเหลืองทั้งสองแยก
-  digitalWrite(green1, LOW);
-  digitalWrite(rad2, LOW);
-  digitalWrite(yellow1, HIGH);
-  digitalWrite(yellow2, HIGH);
-  delay(2000);
-
-  // ปิดไฟทั้งหมด
-  digitalWrite(yellow1, LOW);
-  digitalWrite(yellow2, LOW);
-}
-
-void blinkAllLights() {
-  // โหมดกระพริบไฟ
-  const int blinkDelay = 500; // ระยะเวลาในการกระพริบ
-
-  // เปิดไฟทั้งหมด
-  digitalWrite(rad1, HIGH);
-  digitalWrite(green1, HIGH);
-  digitalWrite(yellow1, HIGH);
-  digitalWrite(rad2, HIGH);
-  digitalWrite(yellow2, HIGH);
-  digitalWrite(green2, HIGH);
-  delay(blinkDelay);
-
-  // ปิดไฟทั้งหมด
-  digitalWrite(rad1, LOW);
-  digitalWrite(green1, LOW);
-  digitalWrite(yellow1, LOW);
-  digitalWrite(rad2, LOW);
-  digitalWrite(yellow2, LOW);
-  digitalWrite(green2, LOW);
-  delay(blinkDelay);}
